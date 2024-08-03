@@ -12,7 +12,7 @@ class FocusedMenuHolderController {
   }
 
   void open() {
-    _widgetState.openMenu(_widgetState.context);
+    _widgetState.openMenu();
     _isOpened = true;
   }
 
@@ -91,15 +91,22 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   void _getOffset() {
-    RenderBox renderBox =
-        containerKey.currentContext!.findRenderObject() as RenderBox;
-    Size size = renderBox.size;
-    Offset offset = renderBox.localToGlobal(Offset.zero);
-    setState(() {
-      this.childOffset = Offset(offset.dx, offset.dy);
-      childSize = size;
-    });
+    if (containerKey.currentContext != null) {
+      RenderBox renderBox =
+          containerKey.currentContext!.findRenderObject() as RenderBox;
+      Size size = renderBox.size;
+      Offset offset = renderBox.localToGlobal(Offset.zero);
+      setState(() {
+        this.childOffset = Offset(offset.dx, offset.dy);
+        childSize = size;
+      });
+    }
   }
 
   @override
@@ -107,13 +114,15 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
     return Listener(
       key: containerKey,
       onPointerDown: (PointerDownEvent event) {
+        _getOffset();
         widget.onPressed?.call();
         if (widget.openWithTap) {
-          openMenu(context);
+          _pressTimer?.cancel();
+          openMenu();
         } else {
           _pressTimer = Timer(
               widget.pressDuration ?? Duration(milliseconds: 500), () async {
-            await openMenu(context);
+            await openMenu();
           });
         }
       },
@@ -127,8 +136,7 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
     );
   }
 
-  Future openMenu(BuildContext context) async {
-    _getOffset();
+  Future<void> openMenu() async {
     widget.onOpened?.call();
 
     await Navigator.push(
