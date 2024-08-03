@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:focused_menu/src/models/focused_menu_item.dart';
 import 'package:focused_menu/src/widgets/focused_menu_datails.dart';
@@ -49,6 +51,8 @@ class FocusedMenuHolder extends StatefulWidget {
   final VoidCallback? onOpened;
   final VoidCallback? onClosed;
 
+  final Duration? pressDuration;
+
   const FocusedMenuHolder({
     Key? key,
     required this.child,
@@ -69,6 +73,7 @@ class FocusedMenuHolder extends StatefulWidget {
     this.controller,
     this.onOpened,
     this.onClosed,
+    this.pressDuration,
   }) : super(key: key);
 
   @override
@@ -79,6 +84,7 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
   GlobalKey containerKey = GlobalKey();
   Offset childOffset = Offset(0, 0);
   Size? childSize;
+  Timer? _pressTimer;
 
   _FocusedMenuHolderState(FocusedMenuHolderController? _controller) {
     if (_controller != null) {
@@ -107,10 +113,16 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
             await openMenu(context);
           }
         },
-        onLongPress: () async {
+        onLongPressStart: (details) {
           if (!widget.openWithTap) {
-            await openMenu(context);
+            _pressTimer = Timer(
+                widget.pressDuration ?? Duration(milliseconds: 500), () async {
+              await openMenu(context);
+            });
           }
+        },
+        onLongPressEnd: (details) {
+          _pressTimer?.cancel();
         },
         child: widget.child);
   }
