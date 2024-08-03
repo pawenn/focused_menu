@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:focused_menu/src/models/focused_menu_item.dart';
 import 'package:focused_menu/src/widgets/focused_menu_datails.dart';
@@ -45,7 +44,7 @@ class FocusedMenuHolder extends StatefulWidget {
   /// Enable scroll in menu. Default is true.
   final bool enableMenuScroll;
 
-  /// Open with tap insted of long press.
+  /// Open with tap instead of long press.
   final bool openWithTap;
   final FocusedMenuHolderController? controller;
   final VoidCallback? onOpened;
@@ -105,26 +104,27 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-        key: containerKey,
-        onTap: () async {
-          widget.onPressed?.call();
-          if (widget.openWithTap) {
+    return Listener(
+      key: containerKey,
+      onPointerDown: (PointerDownEvent event) {
+        widget.onPressed?.call();
+        if (widget.openWithTap) {
+          openMenu(context);
+        } else {
+          _pressTimer = Timer(
+              widget.pressDuration ?? Duration(milliseconds: 500), () async {
             await openMenu(context);
-          }
-        },
-        onLongPressStart: (details) {
-          if (!widget.openWithTap) {
-            _pressTimer = Timer(
-                widget.pressDuration ?? Duration(milliseconds: 500), () async {
-              await openMenu(context);
-            });
-          }
-        },
-        onLongPressEnd: (details) {
-          _pressTimer?.cancel();
-        },
-        child: widget.child);
+          });
+        }
+      },
+      onPointerMove: (PointerMoveEvent event) {
+        _pressTimer?.cancel();
+      },
+      onPointerUp: (PointerUpEvent event) {
+        _pressTimer?.cancel();
+      },
+      child: widget.child,
+    );
   }
 
   Future openMenu(BuildContext context) async {
