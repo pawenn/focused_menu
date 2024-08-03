@@ -12,13 +12,15 @@ class FocusedMenuHolderController {
   }
 
   void open() {
-    _widgetState.openMenu();
-    _isOpened = true;
+    if (_widgetState.mounted) {
+      _widgetState.openMenu();
+      _isOpened = true;
+    }
   }
 
   void close() {
-    if (_isOpened) {
-      Navigator.pop(_widgetState.context);
+    if (_isOpened && _widgetState.mounted) {
+      Navigator.pop(_widgetState.savedContext);
       _isOpened = false;
     }
   }
@@ -84,6 +86,7 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
   Offset childOffset = Offset(0, 0);
   Size? childSize;
   Timer? _pressTimer;
+  late BuildContext savedContext;
 
   _FocusedMenuHolderState(FocusedMenuHolderController? _controller) {
     if (_controller != null) {
@@ -94,6 +97,9 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getOffset();
+    });
   }
 
   void _getOffset() {
@@ -102,10 +108,12 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
           containerKey.currentContext!.findRenderObject() as RenderBox;
       Size size = renderBox.size;
       Offset offset = renderBox.localToGlobal(Offset.zero);
-      setState(() {
-        this.childOffset = Offset(offset.dx, offset.dy);
-        childSize = size;
-      });
+      if (mounted) {
+        setState(() {
+          this.childOffset = Offset(offset.dx, offset.dy);
+          childSize = size;
+        });
+      }
     }
   }
 
@@ -114,6 +122,7 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
     return Listener(
       key: containerKey,
       onPointerDown: (PointerDownEvent event) {
+        savedContext = context;
         _getOffset();
         widget.onPressed?.call();
         if (widget.openWithTap) {
@@ -140,7 +149,7 @@ class _FocusedMenuHolderState extends State<FocusedMenuHolder> {
     widget.onOpened?.call();
 
     await Navigator.push(
-      context,
+      savedContext,
       PageRouteBuilder(
         transitionDuration: widget.duration ?? Duration(milliseconds: 100),
         pageBuilder: (context, animation, secondaryAnimation) {
